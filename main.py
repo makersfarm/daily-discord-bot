@@ -2,6 +2,9 @@ import os
 import subprocess
 from datetime import date
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from src.collectors import public_data, aihub
 from src.generators.idea import build_public_data_prompt, build_aihub_prompt
 from src.senders import discord
