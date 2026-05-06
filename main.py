@@ -1,6 +1,5 @@
-import json
+import os
 import subprocess
-import sys
 from datetime import date
 
 from src.collectors import public_data, aihub
@@ -9,11 +8,13 @@ from src.senders import discord
 
 
 def ask_claude(prompt: str) -> str:
+    env = {**os.environ, "CLAUDECODE": ""}
     result = subprocess.run(
         ["claude", "-p", prompt, "--model", "claude-haiku-4-5-20251001"],
         capture_output=True,
         text=True,
         timeout=120,
+        env=env,
     )
     if result.returncode != 0:
         raise RuntimeError(f"claude CLI 오류: {result.stderr}")
