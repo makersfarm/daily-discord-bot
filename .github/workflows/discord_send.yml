@@ -1,0 +1,20 @@
+name: Send Discord Message
+on:
+  push:
+    branches: ['**']
+    paths: ['data/today_discord_payload.json']
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: POST payload to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            --data-binary @data/today_discord_payload.json \
+            "$WEBHOOK"

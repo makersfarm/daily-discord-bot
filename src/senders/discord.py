@@ -23,10 +23,8 @@ def _format_hub_dataset(hub_data: dict) -> str:
     )
 
 
-def send(pub_data: dict, hub_data: dict, public_idea: str, aihub_idea: str) -> None:
-    webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
-
-    payload = {
+def build_payload(pub_data: dict, hub_data: dict, public_idea: str, aihub_idea: str) -> dict:
+    return {
         "embeds": [
             {
                 "title": "📊 오늘의 공공데이터 아이디어",
@@ -41,5 +39,9 @@ def send(pub_data: dict, hub_data: dict, public_idea: str, aihub_idea: str) -> N
         ]
     }
 
+
+def send(pub_data: dict, hub_data: dict, public_idea: str, aihub_idea: str) -> None:
+    webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+    payload = build_payload(pub_data, hub_data, public_idea, aihub_idea)
     resp = requests.post(webhook_url, json=payload, timeout=10)
     resp.raise_for_status()

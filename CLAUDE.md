@@ -10,23 +10,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture
 
 ```
-main.py                          # 진입점: 수집 → 아이디어 생성(claude CLI) → Discord 전송
+main.py                          # 진입점: 수집 → 아이디어 생성(claude CLI) → payload 저장 → Discord 전송 시도
 src/
   collectors/
-    public_data.py               # 공공데이터포털 API 실시간 조회
+    public_data.py               # data/public_data_all.json 읽기 (IP 차단 우회)
     aihub.py                     # data/aihub_catalog_detail.json 읽기 + seen 추적
   generators/
     idea.py                      # 프롬프트 빌더 (Claude CLI가 실행)
   senders/
-    discord.py                   # Discord Webhook Embed 전송
+    discord.py                   # build_payload() + send() (로컬 직접 전송 / 루틴은 GH Actions 경유)
 data/
   aihub_catalog_detail.json      # AI Hub 805개 데이터셋 캐시 (크롤링 완료)
   aihub_catalog.json             # AI Hub ID+title만 있는 원본 목록
   public_data_all.json           # 공공데이터 16개 카테고리 전체 캐시 (로컬에서 월 1회 갱신)
   public_data_categories.json    # 공공데이터 16개 대분류 + 하위분류 매핑 (참고용)
   seen_aihub.json                # 이미 소개한 AI Hub 데이터셋 ID 목록 (자동 생성)
+  today_discord_payload.json     # 오늘 생성된 Discord payload (루틴이 push → GH Actions가 전송)
 scripts/
   fetch_all_public_data.py       # 공공데이터 16개 카테고리 전체 fetch → data/public_data_all.json
+.github/
+  workflows/
+    discord_send.yml             # push 트리거 → Discord Webhook 전송 (GH Actions)
 ```
 
 ## Key Design Decisions
@@ -88,27 +92,45 @@ source .env && python3 main.py
 루틴 에이전트가 매일 실행하는 단계:
 1. `.env` 파일 작성 (크리덴셜 주입)
 2. `pip install -q -r requirements.txt`
-3. `python3 main.py`
+3. `python3 main.py` → 아이디어 생성 + `data/today_discord_payload.json` 저장
+4. `git commit + push` → GitHub Actions 트리거 → Discord 전송
 
 루틴 수정은 `RemoteTrigger` 툴로 가능 (Claude Code가 자동으로 OAuth 토큰 주입).
+
+## Discord 전송 구조
+
+**이유**: 루틴 환경(Anthropic 서버)에서 `discord.com`이 차단됨. GitHub Actions runner는 외부 접근 가능.
+
+```
+루틴: python3 main.py → data/today_discord_payload.json 저장
+루틴: git push
+GitHub Actions (.github/workflows/discord_send.yml): push 트리거 → curl Discord Webhook
+```
+
+- `discord.build_payload()` — Discord 전송용 embeds 빌드
+- `discord.send()` — 로컬에서 직접 전송 (루틴에선 실패해도 무시)
+- `today_discord_payload.json` — 루틴이 push하면 GH Actions가 읽어 전송
 
 ## Required Environment Variables
 
 - `PUBLIC_DATA_SERVICE_KEY` — data.go.kr API 키 (루틴이 `.env`로 주입, 로컬은 `.env` 파일 직접 사용)
-- `DISCORD_WEBHOOK_URL` — Discord 채널 Webhook URL (동일)
+- `DISCORD_WEBHOOK_URL` — Discord 채널 Webhook URL (로컬 `.env` + **GitHub repo secret** 둘 다 필요)
 - `python-dotenv`가 `.env`를 자동 로드 (`main.py` 상단 `load_dotenv()`)
+
+GitHub repo secret 설정: `Settings → Secrets and variables → Actions → DISCORD_WEBHOOK_URL`
 
 ## 현재 상태 (2026-05-06 기준)
 
-- 파이프라인 전체 구현 완료 (수집 → 아이디어 생성 → Discord 전송)
-- 공공데이터 IP 차단 문제 해결: 16개 카테고리 전체 캐시(`data/public_data_all.json`, 2996개) 로컬 fetch 완료
-- 루틴에서 API 호출 없이 캐시 파일만 읽어 동작
-- `python-dotenv`로 `.env` 자동 로드 (루틴이 쓴 `.env`를 Python이 읽을 수 있게)
-- claude CLI 타임아웃 120초 (`main.py:18`)
-- **아직 Discord 전송까지 완전히 성공한 루틴 실행 없음** — 재테스트 필요
+- 파이프라인 전체 구현 완료 (수집 → 아이디어 생성 → payload 저장 → GH Actions → Discord)
+- 공공데이터 IP 차단 문제 해결: 16개 카테고리 전체 캐시 (`data/public_data_all.json`, 2996개)
+- Discord IP 차단 문제 해결: GitHub Actions 릴레이 (`discord_send.yml`)
+- claude CLI 타임아웃 120초 (`main.py`)
+- **GitHub repo secret `DISCORD_WEBHOOK_URL` 추가 필요 → 추가 후 workflow_dispatch로 T3 테스트**
+- **루틴 프롬프트에 git push 단계 추가 필요 → RemoteTrigger update**
 
 ## TODO / 미완성
 
-- [ ] 루틴 재실행 후 Discord 전송 확인
+- [ ] GitHub repo secret `DISCORD_WEBHOOK_URL` 추가 (사용자 직접)
+- [ ] workflow_dispatch로 GH Actions 단독 테스트 (T3)
+- [ ] 루틴 프롬프트에 git push 단계 추가 + RemoteTrigger.run 으로 end-to-end 테스트 (T4)
 - [ ] AI Hub 카탈로그 정기 갱신 스크립트 (`scripts/update_aihub_catalog.py`)
-- [ ] 에러 핸들링 강화 (API 실패 시 재시도)

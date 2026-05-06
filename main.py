@@ -1,6 +1,8 @@
+import json
 import os
 import subprocess
 from datetime import date
+from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -8,6 +10,8 @@ load_dotenv()
 from src.collectors import public_data, aihub
 from src.generators.idea import build_public_data_prompt, build_aihub_prompt
 from src.senders import discord
+
+PAYLOAD_PATH = Path("data/today_discord_payload.json")
 
 
 def ask_claude(prompt: str) -> str:
@@ -39,11 +43,16 @@ def main():
     pub_idea = ask_claude(build_public_data_prompt(pub_data))
     hub_idea = ask_claude(build_aihub_prompt(hub_data))
 
-    print("📨 Discord 전송 중...")
-    discord.send(pub_data, hub_data, pub_idea, hub_idea)
-    print("✅ 완료")
+    payload = discord.build_payload(pub_data, hub_data, pub_idea, hub_idea)
+    PAYLOAD_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"💾 payload 저장: {PAYLOAD_PATH}")
 
-    # Cowork 확인용 출력
+    try:
+        discord.send(pub_data, hub_data, pub_idea, hub_idea)
+        print("📨 Discord 직접 전송 성공")
+    except Exception as e:
+        print(f"⚠️ Discord 직접 전송 실패 (GitHub Actions가 처리): {e}")
+
     print("\n--- 공공데이터 아이디어 ---")
     print(pub_idea)
     print("\n--- AI Hub 아이디어 ---")
