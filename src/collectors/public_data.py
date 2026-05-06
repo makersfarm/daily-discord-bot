@@ -6,7 +6,7 @@ from pathlib import Path
 
 BASE_URL = "https://api.odcloud.kr/api/15077093/v1/open-data-list"
 SEEN_PATH = Path("data/seen_public_data.json")
-CACHE_PATH = Path("data/today_public.json")
+ALL_CACHE_PATH = Path("data/public_data_all.json")
 
 CATEGORIES = [
     "공공행정", "과학기술", "교통물류", "국토관리", "사회복지",
@@ -71,31 +71,48 @@ def pick_datasets(category: str, service_key: str, n: int = 3) -> list[dict]:
 
 
 def collect(day_of_year: int) -> dict:
-    if CACHE_PATH.exists():
-        with open(CACHE_PATH, encoding="utf-8") as f:
-            cached = json.load(f)
-        if cached.get("day_of_year") == day_of_year:
-            return {k: v for k, v in cached.items() if k != "day_of_year"}
-
-    service_key = os.environ["PUBLIC_DATA_SERVICE_KEY"]
     category = get_today_category(day_of_year)
-    picks = pick_datasets(category, service_key)
 
-    result = {
-        "category": category,
-        "datasets": [
+    if ALL_CACHE_PATH.exists():
+        with open(ALL_CACHE_PATH, encoding="utf-8") as f:
+            all_data = json.load(f)
+        datasets = all_data.get("categories", {}).get(category, [])
+    else:
+        service_key = os.environ["PUBLIC_DATA_SERVICE_KEY"]
+        raw = fetch_datasets(category, service_key)
+        datasets = [
             {
                 "title": d.get("list_title", ""),
                 "desc": d.get("desc", ""),
                 "org": d.get("org_nm", ""),
                 "keywords": d.get("keywords", ""),
                 "endpoint": d.get("end_point_url", ""),
+                "list_id": d.get("list_id", ""),
+            }
+            for d in raw
+        ]
+
+    seen = _load_seen()
+    seen_ids = set(seen.get(category, []))
+    available = [d for d in datasets if d.get("list_id") not in seen_ids]
+    if len(available) < 3:
+        seen_ids = set()
+        available = datasets
+
+    picks = random.sample(available, min(3, len(available)))
+    seen[category] = sorted(seen_ids | {d["list_id"] for d in picks if d.get("list_id")})
+    _save_seen(seen)
+
+    return {
+        "category": category,
+        "datasets": [
+            {
+                "title": d.get("title", ""),
+                "desc": d.get("desc", ""),
+                "org": d.get("org", ""),
+                "keywords": d.get("keywords", ""),
+                "endpoint": d.get("endpoint", ""),
             }
             for d in picks
         ],
     }
-
-    with open(CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump({"day_of_year": day_of_year, **result}, f, ensure_ascii=False, indent=2)
-
-    return result

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 매일 KST 09:00에 공공데이터 아이디어 + AI Hub 아이디어를 Discord로 전송하는 봇.
-스케줄러는 **Claude Cowork** (GitHub Actions 아님). Claude가 `python main.py`를 실행하고, `claude` CLI로 아이디어를 직접 생성.
+스케줄러는 **Claude Code 루틴** (GitHub Actions 아님). Claude가 `python3 main.py`를 실행하고, `claude` CLI로 아이디어를 직접 생성.
 
 ## Architecture
 
@@ -22,19 +22,31 @@ src/
 data/
   aihub_catalog_detail.json      # AI Hub 805개 데이터셋 캐시 (크롤링 완료)
   aihub_catalog.json             # AI Hub ID+title만 있는 원본 목록
-  public_data_categories.json    # 공공데이터 16개 대분류 + 하위분류 매핑
+  public_data_all.json           # 공공데이터 16개 카테고리 전체 캐시 (로컬에서 월 1회 갱신)
+  public_data_categories.json    # 공공데이터 16개 대분류 + 하위분류 매핑 (참고용)
   seen_aihub.json                # 이미 소개한 AI Hub 데이터셋 ID 목록 (자동 생성)
+scripts/
+  fetch_all_public_data.py       # 공공데이터 16개 카테고리 전체 fetch → data/public_data_all.json
 ```
 
 ## Key Design Decisions
 
 ### 공공데이터포털
+- **실행 환경 주의**: Claude Code 루틴은 Anthropic 원격 서버(해외 IP)에서 실행됨. data.go.kr API는 국내 IP만 허용 → 루틴에서 직접 호출 시 403. **반드시 로컬에서 캐시 생성 후 push해야 함.**
+- **캐시 파일**: `data/public_data_all.json` — 16개 카테고리 전체 데이터셋 저장
 - **API 엔드포인트**: `https://api.odcloud.kr/api/15077093/v1/open-data-list`
-- **분야 필터**: `cond[new_category_nm::EQ]=분야명` (한국어 그대로)
 - **분야 순환**: `day_of_year % 16` — state 파일 없이 날짜 기반 자동 순환
-- **중복 제거**: `list_id` 기준 dedup 후 랜덤 3개 선택
+- **데이터 선택**: 캐시에서 오늘 카테고리 로드 → `list_id` seen 추적 → 랜덤 3개 선택
 - **응답 주의**: `totalCount`는 항상 17190 반환 (API 버그). 실제 필터링은 됨.
 - 16개 분야: 공공행정, 과학기술, 교통물류, 국토관리, 사회복지, 산업고용, 식품건강, 재난안전, 재정금융, 통일외교안보, 환경기상, 교육, 농축수산, 문화관광, 법률, 보건의료
+
+### 공공데이터 캐시 갱신 (월 1회 권장)
+```bash
+source .env && python3 scripts/fetch_all_public_data.py
+git add data/public_data_all.json
+git commit -m "data: refresh public data cache"
+git push
+```
 
 ### AI Hub
 - **카탈로그 엔드포인트**: `https://api.aihub.or.kr/info/dataset.do` (인증 불필요)
@@ -49,8 +61,10 @@ data/
 
 ### 데이터 파일 용도
 - `aihub_catalog_detail.json` — 런타임에 직접 읽는 캐시. 갱신 필요시 크롤링 스크립트 재실행.
+- `public_data_all.json` — 공공데이터 16개 카테고리 캐시. `scripts/fetch_all_public_data.py`로 갱신.
 - `public_data_categories.json` — 런타임 미사용, 분야 구조 참고용 문서.
 - `seen_aihub.json` — 실행 시 자동 생성/갱신. 805개 전부 소진되면 자동 초기화.
+- **seen 추적 한계**: 루틴은 매 실행마다 fresh clone이라 seen 변경이 다음 실행에 반영 안 됨. 각 카테고리에 수십~수백 개 데이터셋이 있어 실용상 문제 없음.
 
 ## Running Locally
 
@@ -79,13 +93,13 @@ source .env && python3 main.py
 ## 현재 상태 (2026-05-06 기준)
 
 - 파이프라인 전체 구현 완료 (수집 → 아이디어 생성 → Discord 전송)
-- `python3 main.py` 첫 실행 시 공공데이터(법률 분야) + AI Hub(디지털 트랩 포집 해충 데이터) 수집 성공
-- claude CLI 타임아웃 60초 → 120초로 수정 (`main.py:16`)
-- **아직 Discord 전송까지 완전히 성공한 테스트 없음** — 타임아웃 수정 후 재테스트 필요
+- 공공데이터 IP 차단 문제 해결: 16개 카테고리 전체 캐시(`data/public_data_all.json`, 2996개) 로컬 fetch 완료
+- 루틴에서 API 호출 없이 캐시 파일만 읽어 동작하도록 수정
+- claude CLI 타임아웃 120초 (`main.py:16`)
+- **아직 Discord 전송까지 완전히 성공한 루틴 실행 없음** — 캐시 적용 후 루틴 재테스트 필요
 
 ## TODO / 미완성
 
-- [ ] `source .env && python3 main.py` 재테스트 (타임아웃 수정 후)
-- [ ] Cowork 태스크 등록
+- [ ] 루틴 재실행 후 Discord 전송 확인
 - [ ] AI Hub 카탈로그 정기 갱신 스크립트 (`scripts/update_aihub_catalog.py`)
 - [ ] 에러 핸들링 강화 (API 실패 시 재시도)
