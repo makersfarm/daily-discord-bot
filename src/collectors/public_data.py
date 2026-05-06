@@ -6,6 +6,7 @@ from pathlib import Path
 
 BASE_URL = "https://api.odcloud.kr/api/15077093/v1/open-data-list"
 SEEN_PATH = Path("data/seen_public_data.json")
+CACHE_PATH = Path("data/today_public.json")
 
 CATEGORIES = [
     "공공행정", "과학기술", "교통물류", "국토관리", "사회복지",
@@ -70,11 +71,17 @@ def pick_datasets(category: str, service_key: str, n: int = 3) -> list[dict]:
 
 
 def collect(day_of_year: int) -> dict:
+    if CACHE_PATH.exists():
+        with open(CACHE_PATH, encoding="utf-8") as f:
+            cached = json.load(f)
+        if cached.get("day_of_year") == day_of_year:
+            return {k: v for k, v in cached.items() if k != "day_of_year"}
+
     service_key = os.environ["PUBLIC_DATA_SERVICE_KEY"]
     category = get_today_category(day_of_year)
     picks = pick_datasets(category, service_key)
 
-    return {
+    result = {
         "category": category,
         "datasets": [
             {
@@ -87,3 +94,8 @@ def collect(day_of_year: int) -> dict:
             for d in picks
         ],
     }
+
+    with open(CACHE_PATH, "w", encoding="utf-8") as f:
+        json.dump({"day_of_year": day_of_year, **result}, f, ensure_ascii=False, indent=2)
+
+    return result
