@@ -4,17 +4,28 @@ on:
     branches: ['**']
     paths: ['data/today_discord_payload.json']
   workflow_dispatch:
+    inputs:
+      payload:
+        description: 'Discord payload JSON string'
+        required: false
 
 jobs:
   send:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'push' }}
       - name: POST payload to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISPATCH_PAYLOAD: ${{ github.event.inputs.payload }}
         run: |
-          curl -fsS -X POST \
-            -H "Content-Type: application/json" \
-            --data-binary @data/today_discord_payload.json \
-            "$WEBHOOK"
+          if [ -n "$DISPATCH_PAYLOAD" ]; then
+            printf '%s' "$DISPATCH_PAYLOAD" | curl -fsS -X POST \
+              -H "Content-Type: application/json" \
+              --data-binary @- "$WEBHOOK"
+          else
+            curl -fsS -X POST \
+              -H "Content-Type: application/json" \
+              --data-binary @data/today_discord_payload.json "$WEBHOOK"
+          fi
