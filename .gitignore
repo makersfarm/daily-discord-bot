@@ -1,0 +1,8 @@
+.env
+.venv/
+.claude/
+.playwright-mcp/
+__pycache__/
+*.pyc
+data/seen_aihub.json
+data/seen_public_data.json
