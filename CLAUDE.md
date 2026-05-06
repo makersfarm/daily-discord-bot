@@ -57,7 +57,7 @@ git push
 ### 아이디어 생성
 - `generators/idea.py`는 프롬프트 빌더만 담당
 - `main.py`가 `claude -p "..." --model claude-haiku-4-5-20251001` subprocess 호출, timeout=120초
-- Claude Cowork 환경에서 실행되므로 별도 API 키 불필요
+- Claude Code 루틴 환경에서 실행되므로 별도 API 키 불필요
 
 ### 데이터 파일 용도
 - `aihub_catalog_detail.json` — 런타임에 직접 읽는 캐시. 갱신 필요시 크롤링 스크립트 재실행.
@@ -77,26 +77,35 @@ source .env && python3 main.py
 
 `python` 명령은 없고 `python3` 사용. `claude` CLI 경로: `/Applications/cmux.app/Contents/Resources/bin/claude`
 
-## Cowork Task 지시문
+## 루틴 설정
 
-```
-매일 KST 09:00:
-cd ~/Desktop/develop/vibecoding/discord-bot/daily-idea-bot
-source .env && python3 main.py
-```
+**Trigger ID**: `trig_01QpQUfwedzSEMmxuhdzysrh`  
+**스케줄**: `3 0 * * *` (UTC) = KST 09:03  
+**모델**: `claude-haiku-4-5-20251001`  
+**allowed_tools**: `Bash`, `Write`  
+**소스 레포**: `https://github.com/makersfarm/daily-discord-bot-cowork` (main 브랜치)
+
+루틴 에이전트가 매일 실행하는 단계:
+1. `.env` 파일 작성 (크리덴셜 주입)
+2. `pip install -q -r requirements.txt`
+3. `python3 main.py`
+
+루틴 수정은 `RemoteTrigger` 툴로 가능 (Claude Code가 자동으로 OAuth 토큰 주입).
 
 ## Required Environment Variables
 
-- `PUBLIC_DATA_SERVICE_KEY` — data.go.kr API 키 (`.env`에 저장됨)
-- `DISCORD_WEBHOOK_URL` — Discord 채널 Webhook URL (`.env`에 저장됨)
+- `PUBLIC_DATA_SERVICE_KEY` — data.go.kr API 키 (루틴이 `.env`로 주입, 로컬은 `.env` 파일 직접 사용)
+- `DISCORD_WEBHOOK_URL` — Discord 채널 Webhook URL (동일)
+- `python-dotenv`가 `.env`를 자동 로드 (`main.py` 상단 `load_dotenv()`)
 
 ## 현재 상태 (2026-05-06 기준)
 
 - 파이프라인 전체 구현 완료 (수집 → 아이디어 생성 → Discord 전송)
 - 공공데이터 IP 차단 문제 해결: 16개 카테고리 전체 캐시(`data/public_data_all.json`, 2996개) 로컬 fetch 완료
-- 루틴에서 API 호출 없이 캐시 파일만 읽어 동작하도록 수정
-- claude CLI 타임아웃 120초 (`main.py:16`)
-- **아직 Discord 전송까지 완전히 성공한 루틴 실행 없음** — 캐시 적용 후 루틴 재테스트 필요
+- 루틴에서 API 호출 없이 캐시 파일만 읽어 동작
+- `python-dotenv`로 `.env` 자동 로드 (루틴이 쓴 `.env`를 Python이 읽을 수 있게)
+- claude CLI 타임아웃 120초 (`main.py:18`)
+- **아직 Discord 전송까지 완전히 성공한 루틴 실행 없음** — 재테스트 필요
 
 ## TODO / 미완성
 
