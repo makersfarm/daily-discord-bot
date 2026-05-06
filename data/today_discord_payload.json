@@ -1,0 +1,14 @@
+{
+  "embeds": [
+    {
+      "title": "📊 오늘의 공공데이터 아이디어",
+      "description": "**분야: 테스트**\n\n• **테스트 데이터셋** (테스트기관)\n  테스트 설명\n\n[GitHub Actions 릴레이 테스트] 이 메시지가 보이면 Discord 전송 파이프라인 정상 동작 중.",
+      "color": 3447003
+    },
+    {
+      "title": "🤖 오늘의 AI Hub 아이디어",
+      "description": "**테스트 데이터셋**\n분야: 테스트 | 유형: 테스트 | 2026년 구축\n태그: 테스트\n\n[GitHub Actions 릴레이 테스트] Discord 전송 확인용.",
+      "color": 3066993
+    }
+  ]
+}
