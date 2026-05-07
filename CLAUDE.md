@@ -28,6 +28,7 @@ main.py
   └─ discord.send()             로컬에선 성공, 루틴 환경에선 discord.com 차단으로 실패
   └─ _trigger_github_actions()  send() 실패 시 폴백: GitHub API workflow_dispatch 호출
                                   → .github/workflows/discord_send.yml → Discord Webhook
+                                  (push 트리거도 있음: today_discord_payload.json 변경 감지)
 ```
 
 ### 환경별 Discord 전송 경로
@@ -59,7 +60,7 @@ git add data/public_data_all.json && git commit -m "data: refresh public data ca
 **Trigger ID**: `trig_01QpQUfwedzSEMmxuhdzysrh`  
 **스케줄**: `0 4 * * *` (UTC) = KST 13:00  
 **모델**: `claude-haiku-4-5-20251001` / **allowed_tools**: `Bash`, `Write`  
-**소스 레포**: `https://github.com/makersfarm/daily-discord-bot` (main 브랜치)
+**소스 레포**: `https://github.com/makersfarm/daily-discord-bot-cowork` (main 브랜치)
 
 루틴 프롬프트가 `.env`에 크리덴셜 직접 주입 (PUBLIC_DATA_SERVICE_KEY, DISCORD_WEBHOOK_URL, GITHUB_TOKEN). `python-dotenv`가 자동 로드.
 

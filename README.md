@@ -14,6 +14,8 @@ Claude Code 루틴 (Anthropic 서버)
 
 GitHub Actions (discord_send.yml)
   └─ Discord Webhook으로 임베드 메시지 전송
+       ├─ 트리거 1: workflow_dispatch (루틴 → GitHub API 호출)
+       └─ 트리거 2: push 시 data/today_discord_payload.json 변경 감지
 ```
 
 **Discord에서 discord.com을 차단하는 Anthropic 서버 특성상**, 루틴이 직접 Discord를 호출하지 않고 GitHub Actions를 릴레이로 사용합니다.
@@ -52,7 +54,11 @@ src/collectors/aihub.py              AI Hub 수집 (캐시 기반)
 src/generators/idea.py               Claude 프롬프트 빌더
 src/senders/discord.py               Discord 전송 / payload 빌드
 data/public_data_all.json            공공데이터 16개 카테고리 캐시
+data/public_data_categories.json     공공데이터 카테고리 목록
 data/aihub_catalog_detail.json       AI Hub 805개 데이터셋 캐시
+data/aihub_catalog.json              AI Hub 카탈로그 요약
+data/seen_aihub.json                 소개한 AI Hub 데이터셋 ID 추적
+data/seen_public_data.json           소개한 공공데이터셋 ID 추적
 data/today_discord_payload.json      오늘 생성된 Discord payload
 scripts/fetch_all_public_data.py     공공데이터 캐시 갱신 스크립트
 .github/workflows/discord_send.yml  Discord 전송 GitHub Actions
