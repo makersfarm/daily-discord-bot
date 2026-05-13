@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       payload:
-        description: 'Discord payload JSON string'
+        description: 'Discord payload JSON (object or array of objects)'
         required: false
 
 jobs:
@@ -15,17 +15,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         if: ${{ github.event_name == 'push' }}
-      - name: POST payload to Discord
+      - name: POST payload(s) to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISPATCH_PAYLOAD: ${{ github.event.inputs.payload }}
         run: |
-          if [ -n "$DISPATCH_PAYLOAD" ]; then
-            printf '%s' "$DISPATCH_PAYLOAD" | curl -fsS -X POST \
+          set -euo pipefail
+          if [ -n "${DISPATCH_PAYLOAD:-}" ]; then
+            SRC="$DISPATCH_PAYLOAD"
+          else
+            SRC=$(cat data/today_discord_payload.json)
+          fi
+          KIND=$(printf '%s' "$SRC" | jq -r 'type')
+          if [ "$KIND" = "array" ]; then
+            COUNT=$(printf '%s' "$SRC" | jq 'length')
+            for i in $(seq 0 $((COUNT - 1))); do
+              printf '%s' "$SRC" | jq -c ".[$i]" | curl -fsS -X POST \
+                -H "Content-Type: application/json" \
+                --data-binary @- "$WEBHOOK"
+              sleep 0.5
+            done
+          else
+            printf '%s' "$SRC" | curl -fsS -X POST \
               -H "Content-Type: application/json" \
               --data-binary @- "$WEBHOOK"
-          else
-            curl -fsS -X POST \
-              -H "Content-Type: application/json" \
-              --data-binary @data/today_discord_payload.json "$WEBHOOK"
           fi
