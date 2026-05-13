@@ -95,11 +95,11 @@ def collect(day_of_year: int) -> dict:
     seen = _load_seen()
     seen_ids = set(seen.get(category, []))
     available = [d for d in datasets if d.get("list_id") not in seen_ids]
-    if len(available) < 3:
+    if len(available) < 2:
         seen_ids = set()
         available = datasets
 
-    picks = random.sample(available, min(3, len(available)))
+    picks = random.sample(available, min(2, len(available)))
     seen[category] = sorted(seen_ids | {d["list_id"] for d in picks if d.get("list_id")})
     _save_seen(seen)
 
@@ -112,6 +112,11 @@ def collect(day_of_year: int) -> dict:
                 "org": d.get("org", ""),
                 "keywords": d.get("keywords", ""),
                 "endpoint": d.get("endpoint", ""),
+                "list_id": d.get("list_id", ""),
+                "url": (
+                    f"https://www.data.go.kr/data/{d.get('list_id')}/openapi.do"
+                    if d.get("list_id") else ""
+                ),
             }
             for d in picks
         ],

@@ -33,10 +33,14 @@ def _trigger_github_actions(payloads: list[dict]) -> None:
 def ask_claude(prompt: str) -> str:
     env = {**os.environ, "CLAUDECODE": ""}
     result = subprocess.run(
-        ["claude", "-p", prompt, "--model", "claude-haiku-4-5-20251001"],
+        [
+            "claude", "-p", prompt,
+            "--model", "claude-haiku-4-5-20251001",
+            "--allowed-tools", "WebSearch",
+        ],
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=300,
         env=env,
     )
     if result.returncode != 0:
