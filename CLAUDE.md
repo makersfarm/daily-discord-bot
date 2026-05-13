@@ -60,7 +60,7 @@ git add data/public_data_all.json && git commit -m "data: refresh public data ca
 **Trigger ID**: `trig_01QpQUfwedzSEMmxuhdzysrh`  
 **스케줄**: `0 4 * * *` (UTC) = KST 13:00  
 **모델**: `claude-haiku-4-5-20251001` / **allowed_tools**: `Bash`, `Write`  
-**소스 레포**: `https://github.com/makersfarm/daily-discord-bot-cowork` (main 브랜치)
+**소스 레포**: `https://github.com/makersfarm/daily-discord-bot` (main 브랜치). 과거 이름 `daily-discord-bot-cowork`은 rename 후에도 GitHub 리다이렉트로 작동.
 
 루틴 프롬프트가 `.env`에 크리덴셜 직접 주입 (PUBLIC_DATA_SERVICE_KEY, DISCORD_WEBHOOK_URL, GITHUB_TOKEN). `python-dotenv`가 자동 로드.
 

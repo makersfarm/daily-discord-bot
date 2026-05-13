@@ -13,7 +13,7 @@ from src.generators.idea import build_public_data_prompt, build_aihub_prompt
 from src.senders import discord
 
 PAYLOAD_PATH = Path("data/today_discord_payload.json")
-_GH_REPO = "makersfarm/daily-discord-bot-cowork"
+_GH_REPO = "makersfarm/daily-discord-bot"
 _GH_WORKFLOW = "discord_send.yml"
 
 
