@@ -10,9 +10,11 @@ def _format_pub_header(pub_data: dict) -> str:
 
 
 def _format_hub_header(hub_data: dict) -> str:
+    updated = hub_data.get("updated", "")
+    updated_part = f" | {updated} 갱신" if updated else ""
     return (
         f"**{hub_data['title']}**\n"
-        f"분야: {hub_data['field']} | 유형: {hub_data['type']} | {hub_data['year']}년 구축\n"
+        f"분야: {hub_data['field']} | 유형: {hub_data['type']} | {hub_data['year']}년 구축{updated_part}\n"
         f"🔗 [데이터셋 보기]({hub_data['url']})"
     )
 

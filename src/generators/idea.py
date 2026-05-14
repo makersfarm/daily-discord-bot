@@ -69,6 +69,7 @@ def build_aihub_prompt(data: dict) -> str:
 데이터 유형: {data['type']}
 태그: {tags}
 {desc_line}구축년도: {data['year']}
+갱신일: {data.get('updated', '')}
 링크: {data['url']}
 
 이 데이터셋을 활용한 아이디어를 2개, 아래 형식으로 출력해.

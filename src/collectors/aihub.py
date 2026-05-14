@@ -3,6 +3,7 @@ import os
 import random
 import requests
 from bs4 import BeautifulSoup
+from datetime import date
 from pathlib import Path
 
 CATALOG_PATH = Path("data/aihub_catalog_detail.json")
@@ -49,8 +50,12 @@ def _fetch_desc(dataset_id: int) -> str:
 
 def collect() -> dict:
     catalog = _load_catalog()
-    seen = _load_seen()
+    current_year = str(date.today().year)
+    catalog = [d for d in catalog if (d.get("updated") or "").startswith(current_year + "-")]
+    if not catalog:
+        raise RuntimeError(f"AI Hub 카탈로그에 {current_year}년 갱신 데이터셋이 없음")
 
+    seen = _load_seen()
     available = [d for d in catalog if d["id"] not in seen]
     if not available:
         seen = set()
@@ -67,6 +72,7 @@ def collect() -> dict:
         "type": pick.get("type", ""),
         "tags": pick.get("tags", []),
         "year": pick.get("year", ""),
+        "updated": pick.get("updated", ""),
         "downloads": pick.get("downloads", ""),
         "desc": _fetch_desc(pick["id"]),
         "url": f"https://www.aihub.or.kr/aihubdata/data/view.do?dataSetSn={pick['id']}",
